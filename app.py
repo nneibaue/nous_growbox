@@ -5,7 +5,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-PORT = '/dev/cu.usbmodem141201'
+PORT = '/dev/ttyACM0'
 
 # Instantiate Serial object with 9600 baud rate (to match Arduino)
 s = serial.Serial(PORT, 9600)
