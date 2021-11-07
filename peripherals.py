@@ -5,6 +5,7 @@ from pathlib import Path
 import serial
 import boto3
 import tqdm
+from random import random
 
 
 DATA_FILE = 'sensor_data_{date}'
@@ -30,7 +31,7 @@ def get_sensor_data(serial):
     return float(humidity), float(temp)
 
     
-def capture_loop(duration, upload=False):
+def capture_loop(duration, upload=False, real=False):
     PORT = '/dev/ttyACM0'
     s = serial.Serial(PORT, 9600)
     file = Path('testfile.csv')
@@ -39,14 +40,22 @@ def capture_loop(duration, upload=False):
             f.write('time,humidity,temp\n')
 
     f = open(file, 'a')
-    print('Performing a 10 minute test...')
-    for _ in tqdm.tqdm(range(duration)):
-        timestamp = datetime.now().timestamp()
-        humidity, temp = get_sensor_data(s)
-        f.write(f'{timestamp},{humidity},{temp}\n')
-        time.sleep(1)
-    f.close()
-
+    print(f'Performing a {duration} second test...')
+    if real:
+        for _ in tqdm.tqdm(range(duration)):
+            timestamp = datetime.now().timestamp()
+            humidity, temp = get_sensor_data(s)
+            f.write(f'{timestamp},{humidity},{temp}\n')
+            time.sleep(1)
+        f.close()
+    else:
+        for _ in range(duration):
+            timestamp = datetime.now().timestamp()
+            fake_humidity = random() 
+            fake_temp = random()*5.5
+            f.write(f'{timestamp},{fake_humidity},{fake_temp}\n')
+            time.sleep(1)
+        f.close()
     cloud_filename = 'test1_11-6-2021'
     if upload:
         upload_to_bucket(BUCKET, str(file), cloud_filename)
