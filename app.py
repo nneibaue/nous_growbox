@@ -53,3 +53,13 @@ def actuate_fan():
     elif which == 'on':
         gpio.output(RELAY, gpio.LOW)
     return 'you got it'
+
+
+@app.route('/current_temperature')
+def get_current_temperature():
+    ...
+    return '5'
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000, host="0.0.0.0")
