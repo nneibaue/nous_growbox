@@ -1,6 +1,6 @@
 from flask import Flask, request
 import serial
-import peripherals as p
+import peripherals
 from datetime import datetime
 import RPi.GPIO as gpio
 
@@ -28,8 +28,9 @@ function submit(which) {{
 </script>
 '''
 
-# Instantiate Serial object with 9600 baud rate (to match Arduino)
-s = serial.Serial(PORT, 9600)
+# Instantiate Serial object with 9600 baud rate (to match Arduino,
+# which is also set at 9600)
+arduino_comm = serial.Serial(PORT, 9600)
 
 
 @app.route('/')
@@ -40,7 +41,7 @@ def hello_world():
 @app.route('/current')
 def show_current_readings():
     print(request.url)
-    humidity, temp = p.get_sensor_data(s)
+    humidity, temp = peripherals.get_sensor_data(arduino_comm)
     now = datetime.now()
     return base.format(temp=temp, humidity=humidity, now=now)
 
