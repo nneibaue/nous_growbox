@@ -30,7 +30,7 @@ def get_sensor_data(serial):
     return float(humidity), float(temp)
 
     
-def capture_loop():
+def capture_loop(duration, upload=False):
     PORT = '/dev/ttyACM0'
     s = serial.Serial(PORT, 9600)
     file = Path('testfile.csv')
@@ -40,15 +40,16 @@ def capture_loop():
 
     f = open(file, 'a')
     print('Performing a 10 minute test...')
-    for _ in tqdm.tqdm(range(600)):
-        time = datetime.now().timestamp()
+    for _ in tqdm.tqdm(range(duration)):
+        timestamp = datetime.now().timestamp()
         humidity, temp = get_sensor_data(s)
-        f.write(f'{time},{humidity},{temp}')
+        f.write(f'{timestamp},{humidity},{temp}')
         time.sleep(1)
     f.close()
 
     cloud_filename = 'test1_11-6-2021'
-    upload_to_bucket(BUCKET, str(file), cloud_filename)
+    if upload:
+        upload_to_bucket(BUCKET, str(file), cloud_filename)
 
 
 if __name__ == '__main__':
