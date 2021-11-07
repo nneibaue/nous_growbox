@@ -8,7 +8,31 @@
 	<script>
 		var data = {{ data|safe }};
 		console.log(data);
-		//Plotly.newPlot('tester', mapdata.data, mapdata.layout, config);
+		time = data.map(item => item.time);
+		temp = data.map(item => item.temp);
+		humidity = data.map(item => item.humidity);
+
+		var temp_trace = {
+			type: 'line',
+			x: time,
+			y: temp,
+			name: 'Temperature'
+		};
+
+		var humidity_trace = {
+			type: 'line',
+			x: time,
+			y: humidity,
+			name: 'Humidity'
+		};
+
+		var layout = {
+			width: 600,
+			height: 400,
+			title: 'Mushy Readings'
+		};
+
+		Plotly.newPlot('tester',[temp_trace, humidity,trace], layout);
 	</script>
   </body>
 </html>
