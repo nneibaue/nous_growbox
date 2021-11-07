@@ -32,8 +32,6 @@ def get_sensor_data(serial):
 
     
 def capture_loop(duration, upload=False, real=False):
-    PORT = '/dev/ttyACM0'
-    s = serial.Serial(PORT, 9600)
     file = Path('testfile.csv')
     if not file.exists():
         with open(file, 'w') as f:
@@ -42,6 +40,8 @@ def capture_loop(duration, upload=False, real=False):
     f = open(file, 'a')
     print(f'Performing a {duration} second test...')
     if real:
+        PORT = '/dev/ttyACM0'
+        s = serial.Serial(PORT, 9600)
         for _ in tqdm.tqdm(range(duration)):
             timestamp = datetime.now().timestamp()
             humidity, temp = get_sensor_data(s)
@@ -49,7 +49,7 @@ def capture_loop(duration, upload=False, real=False):
             time.sleep(1)
         f.close()
     else:
-        for _ in range(duration):
+        for _ in tqdm.tqdm(range(duration)):
             timestamp = datetime.now().timestamp()
             fake_humidity = random() 
             fake_temp = random()*5.5
