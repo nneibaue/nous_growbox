@@ -1,8 +1,9 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 import serial
 import peripherals
 from datetime import datetime
 import RPi.GPIO as gpio
+import pandas as pd
 
 app = Flask(__name__)
 PORT = '/dev/ttyACM0'
@@ -60,6 +61,14 @@ def actuate_fan():
 def get_current_temperature():
     ...
     return '5'
+
+@app.route('/graph')
+def render_graph():
+    print(request.url)
+    file = 'testfile.csv'
+    df = pd.read_csv(file)
+    template = render_template('graph.html', data=df.to_json())
+    return template
 
 
 if __name__ == "__main__":

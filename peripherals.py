@@ -43,7 +43,7 @@ def capture_loop(duration, upload=False):
     for _ in tqdm.tqdm(range(duration)):
         timestamp = datetime.now().timestamp()
         humidity, temp = get_sensor_data(s)
-        f.write(f'{timestamp},{humidity},{temp}')
+        f.write(f'{timestamp},{humidity},{temp}\n')
         time.sleep(1)
     f.close()
 
