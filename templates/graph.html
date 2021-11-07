@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+			<script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+	</head>
+  <body>
+	<div id="tester" style="width:1000px;height:1000px;"></div>
+	<script>
+		var data = {{ data|safe }};
+		console.log(data);
+		//Plotly.newPlot('tester', mapdata.data, mapdata.layout, config);
+	</script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<h3>Reading at {now}</h3>
+<b>Temperature:</b> {temp} <br>
+<b>Humidity:</b> {humidity} <br>
+<div style="border: 2px solid green;width: 25%">
+    <input type="button" onclick="submit('on')" value="Fan on"/>
+    <input type="button" onclick="submit('off')" value="Fan off"/>
+
+<script>
+function submit(which) {{
+    console.log(which);
+    $.post("/fancontrol", {{"setButtonTo": which}})
+}}
+</script>
