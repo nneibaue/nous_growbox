@@ -85,6 +85,10 @@ def capture_loop(duration, upload=False, real=False):
         cloud_filename = 'test1_11-6-2021'
         upload_to_bucket(BUCKET, str(file), cloud_filename)
 
+def capture_loop_test(source, n_captures):
+    for _ in tqdm.tqdm(range(n_captures)):
+        capture_single_point(source)
+        time.sleep(5)
 
 # Every minute:
 # take a data point. We have data now
