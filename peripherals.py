@@ -99,6 +99,7 @@ def capture_single_point(source: str):
     if source == 'sensor':
         # Open the serial port _only_ when we need to take a data point
         s = serial.Serial(PORT, 9600)
+        time.sleep(0.5)
         data = get_sensor_datapoint(s)
     else:
         data = get_fake_datapoint()
