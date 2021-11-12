@@ -67,7 +67,7 @@ def render_graph():
     print(request.url)
     file = 'testfile.csv'
     df = pd.read_csv(file)
-    template = render_template('graph.html', data=df.to_json())
+    template = render_template('graph.html', data=df.to_json(orient='records'))
     return template
 
 
