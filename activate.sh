@@ -1,6 +1,6 @@
 #!/bin/bash
-
-virtual_environment="/home/nneibaue/nous_growbox/env"
+home_dir=${HOME}
+virtual_environment=$home_dir"/nous_growbox/env"
 
 if [ -d $virtual_environment ]; then
    echo "virtual environment already exists.. sourcing..."
