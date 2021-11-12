@@ -13,6 +13,13 @@ BUCKET = 'nous-growbox'
 PORT = '/dev/ttyACM0'
 HEADER = 'time,humidity,temp'
 
+# Basically, this initializes the serial comm object and opens the port whenever this
+# module is called or imported. The 2 second delay is to allow all of the serial 
+# 'handshaking' to initialize properly
+ARDUINO = serial.Serial(PORT, 9600)
+print('Initializing serial port')
+time.sleep(2)
+
 def initialize_sensor():
     # Do stuff here with imports and serial?
     pass
@@ -50,7 +57,7 @@ def get_fake_datapoint():
     return DataPoint(temp, humidity)
 
 
-def get_sensor_datapoint(serial):
+def get_sensor_datapoint(serial=ARDUINO):
     '''Gets sensor data from arduino.'''
     serial.flush()
     serial.read_all()
@@ -72,7 +79,6 @@ def capture_loop(duration, upload=False, real=False):
     for _ in tqdm.tqdm(range(duration)):
         if real:
             PORT = '/dev/ttyACM0'
-            s = serial.Serial(PORT, 9600)
             data = get_sensor_datapoint(s)
         else:
             data = get_fake_datapoint()
@@ -97,10 +103,7 @@ def capture_loop_test(source, n_captures):
 def capture_single_point(source: str):
     assert source in ['sensor', 'fake'], "`source` must be one of ['sensor', 'fake']"
     if source == 'sensor':
-        # Open the serial port _only_ when we need to take a data point
-        s = serial.Serial(PORT, 9600)
-        time.sleep(0.5)
-        data = get_sensor_datapoint(s)
+        data = get_sensor_datapoint(ARDUINO)
     else:
         data = get_fake_datapoint()
 
