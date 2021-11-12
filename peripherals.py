@@ -110,4 +110,4 @@ def capture_single_point(source: str):
 
 
 if __name__ == '__main__':
-    fire.Fire(capture_loop)
+    fire.Fire()
