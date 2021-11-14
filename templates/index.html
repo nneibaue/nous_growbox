@@ -1,14 +1,61 @@
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<h3>Reading at {now}</h3>
-<b>Temperature:</b> {temp} <br>
-<b>Humidity:</b> {humidity} <br>
-<div style="border: 2px solid green;width: 25%">
-    <input type="button" onclick="submit('on')" value="Fan on"/>
-    <input type="button" onclick="submit('off')" value="Fan off"/>
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<style>
+		.data-readout {
+			border: 1px solid black;
+			width: 170px;
+			padding: 10px;
+		}
+		.collector-submit {
+			border: 1px solid black;
+			width: 170px;
+			padding: 10px
+		}
+	</style>
+	</head>
+	<body>
+		<div class='data-readout'>
+			<h3>Reading at {{ now }}</h3>
+			<b>Temperature:</b> {{ temp }} <br>
+			<b>Humidity:</b> {{ humidity }} <br>
+		</div>
+		<br>
 
-<script>
-function submit(which) {{
-    console.log(which);
-    $.post("/fancontrol", {{"setButtonTo": which}})
-}}
-</script>
+		<div class='collector-submit'>
+			<label for="fname">data_dir: </label>
+			<input type="text" id="data-dir-input" value="data"><br>
+			<label for="lname">source: </label>
+			<input type="text" id="source-input" value="sensor"><br>
+			<label for="lname">sample_rate: </label>
+			<input type="text" id="sample-rate-input" value="60"><br>
+			<input type="submit" value="Submit">
+			<button id="start-button" onclick="start()">Start</button>
+			<button id="stop-button" onclick="stop()" disabled=true>Stop</button>
+
+		</div>
+
+	</body>
+	<script>
+			var data_dir = document.getElementById('data-dir-input');
+			var source = document.getElementById('source-input');
+			var sample_rate = document.getElementById('sample-rate-input');
+			var stop_button = document.getElementById('stop-button');
+			var start_button = document.getElementById('start-button');
+
+		function start() {
+			stop_button.disabled = false;
+			start_button.disabled = true;
+			url = `/start?data_dir=${data_dir.value}&source=${source.value}&sample_rate=${sample_rate.value}`;
+			window.location.href = url
+
+		}
+
+		function stop() {
+			start_button.disabled = false;
+			stop_button.disabled = true;
+			window.location.href = `/stop`
+		}
+	</script>
+</html>
