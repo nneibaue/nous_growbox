@@ -6,6 +6,7 @@ import serial
 import boto3
 import tqdm
 from random import random
+import multiprocessing
 
 
 DATA_FILE = 'sensor_data_{date}'
@@ -45,7 +46,6 @@ class DataPoint:
         self.minute = self._time.minute
         self.year = self._time.year
         self.month = self._time.month
-
     
     def __repr__(self):
         return f'{self.time},{self.humidity},{self.temp}'
@@ -68,46 +68,26 @@ def get_sensor_datapoint(serial=ARDUINO):
     return DataPoint(float(humidity), float(temp))
 
     
-def capture_loop(duration, upload=False, real=False):
-    file = Path('testfile.csv')
-    if not file.exists():
-        with open(file, 'w') as f:
-            f.write('time,humidity,temp\n')
+def capture_loop(sample_rate: int, source: str, data_dir='.'):
+    while True:
+        capture_single_point(source, data_dir)
+        time.sleep(sample_rate)
 
-    f = open(file, 'a')
-    print(f'Performing a {duration} second test...')
-    for _ in tqdm.tqdm(range(duration)):
-        if real:
-            PORT = '/dev/ttyACM0'
-            data = get_sensor_datapoint(s)
-        else:
-            data = get_fake_datapoint()
 
-        f.write(f'{data}\n')
-        time.sleep(1)
-    f.close()
-
-    if upload:
-        cloud_filename = 'test1_11-6-2021'
-        upload_to_bucket(BUCKET, str(file), cloud_filename)
-
-def capture_loop_test(source, n_captures):
-    for _ in tqdm.tqdm(range(n_captures)):
-        capture_single_point(source)
-        time.sleep(5)
-
-# Every minute:
-# take a data point. We have data now
-# Decide where it goes -> based on data timestamp, group by hour
-
-def capture_single_point(source: str):
+def capture_single_point(source: str, data_dir='.'):
     assert source in ['sensor', 'fake'], "`source` must be one of ['sensor', 'fake']"
     if source == 'sensor':
-        data = get_sensor_datapoint(ARDUINO)
+        data = get_sensor_datapoint()
     else:
         data = get_fake_datapoint()
 
-    file = Path(f'growbox_data_{source}_{data.year}{data.month}{data.day}-{data.hour}.csv')
+    fname = f'growbox_data_{source}_{data.year}{data.month}{data.day}-{data.hour}.csv'
+    data_dir = Path(data_dir)
+    if not data_dir.exists():
+        data_dir.mkdir()
+
+    file = Path(data_dir) / fname
+
     if not file.exists():
         to_write = f'{HEADER}\n{data}\n'
     else:
@@ -115,6 +95,48 @@ def capture_single_point(source: str):
 
     with open(file, 'a') as f:
         f.write(to_write)
+
+
+class Collector:
+    def __init__(self, data_dir='.', source='sensor', sample_rate=60):
+        self.is_running = False
+        self.data_dir = data_dir
+        self.source = source
+        self.sample_rate = sample_rate 
+
+        self._p = None  # Variable to hold a multiprocessing.Process instance
+
+    def start(self):
+        '''Starts a new collection at one sample every <sample_rate> seconds.'''
+        if self.is_running:
+            print(f'This process is already running')
+
+        else:  # Create and start a new process
+            self._p = multiprocessing.Process(
+                target=capture_loop,
+                args=(self.sample_rate, self.source, self.data_dir)
+            )
+            self._p.start()
+            self.is_running=True
+            print(f'Started a collection at {60/self.sample_rate} points per minute in {self.data_dir}')
+
+
+    def stop(self):
+        '''Stops the current process'''
+        if not self.is_running:
+            print('No currently running process')
+        
+        else:  # Stop the current process
+            self._p.terminate()
+            self.is_running = False
+            print(f'{self} stopped')
+
+
+    def __repr__(self):
+        s = self.sample_rate
+        d = self.data_dir
+        return f'Collector({s}, {d})'
+
 
 
 if __name__ == '__main__':
