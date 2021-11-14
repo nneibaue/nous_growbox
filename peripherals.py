@@ -62,7 +62,7 @@ def get_sensor_datapoint(serial=ARDUINO):
     serial.flush()
     serial.read_all()
     serial.write('getTempHumidity\n'.encode())
-    time.sleep(0.2)
+    time.sleep(0.5)
     s = serial.readline().strip().decode()
     humidity, temp = s.split(',')
     return DataPoint(float(humidity), float(temp))
@@ -70,7 +70,11 @@ def get_sensor_datapoint(serial=ARDUINO):
     
 def capture_loop(sample_rate: int, source: str, data_dir='.'):
     while True:
-        capture_single_point(source, data_dir)
+        try:
+            capture_single_point(source, data_dir)
+        except ValueError:  #TODO fix this nasty code
+            breakpoint()
+            continue
         time.sleep(sample_rate)
 
 
@@ -98,6 +102,28 @@ def capture_single_point(source: str, data_dir='.'):
 
 
 class Collector:
+    '''Simple collector object that allows you to start and stop a collection.
+
+    Once a Collector is instantiated, collections can be started and stopped by
+    calling the `start` and `stop` methods. Under the hood, the object is creating
+    `multiprocessing.Process` objects that point to the `capture_loop` function
+    defined above in `peripherals.py`.
+
+    Example:
+    ```
+    >>> c1 = Collector(data_dir='testing', source='fake', sample_rate=1) 
+    >>> c1.start()  # Starts the collect
+    >>> time.sleep(60)  # Collect for 60 seconds
+    >>> c1.stop()  # Stop the collection
+    >>> c1.data_dir = 'testing2'  # Switch to a new data dir
+    >>> c1.source = 'sensor'  # Now collect from the sensor
+    >>> c1.sample_rate = 3  # Change sample rate
+    >>> c1.start()
+    >>> time.sleep(50)
+    >>> c1.stop()
+    ```
+
+    '''
     def __init__(self, data_dir='.', source='sensor', sample_rate=60):
         self.is_running = False
         self.data_dir = data_dir
