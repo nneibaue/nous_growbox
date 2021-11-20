@@ -89,7 +89,6 @@ def capture_single_point(source: str, data_dir='.'):
 
     fname = f'growbox_data_{source}_{data.year}{data.month}{data.day}-{data.hour}.csv'
     data_dir = Path(DATA_BASE_DIR) / data_dir
-    breakpoint()
     if not data_dir.exists():
         data_dir.mkdir()
 
