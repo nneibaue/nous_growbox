@@ -65,16 +65,12 @@ def get_sensor_datapoint(serial=ARDUINO):
     time.sleep(0.5)
     s = serial.readline().strip().decode()
     humidity, temp = s.split(',')
-    return DataPoint(float(humidity), float(temp))
+    return DataPoint(float(temp), float(humidity))
 
     
 def capture_loop(sample_rate: int, source: str, data_dir='.'):
     while True:
-        try:
-            capture_single_point(source, data_dir)
-        except ValueError:  #TODO fix this nasty code
-            breakpoint()
-            continue
+        capture_single_point(source, data_dir)
         time.sleep(sample_rate)
 
 
@@ -125,16 +121,25 @@ class Collector:
 
     '''
     def __init__(self, data_dir='.', source='sensor', sample_rate=60):
-        self.is_running = False
+        self._is_running = False
         self.data_dir = data_dir
         self.source = source
         self.sample_rate = sample_rate 
 
         self._p = None  # Variable to hold a multiprocessing.Process instance
 
+
+    @property
+    def is_running(self):
+        return self._is_running
+
+    @is_running.setter
+    def is_running(self, status):
+        raise ValueError('Cannot set this property manually!')
+
     def start(self):
         '''Starts a new collection at one sample every <sample_rate> seconds.'''
-        if self.is_running:
+        if self._is_running:
             print(f'This process is already running')
 
         else:  # Create and start a new process
@@ -143,18 +148,18 @@ class Collector:
                 args=(self.sample_rate, self.source, self.data_dir)
             )
             self._p.start()
-            self.is_running=True
+            self._is_running=True
             print(f'Started a collection at {60/self.sample_rate} points per minute in {self.data_dir}')
 
 
     def stop(self):
         '''Stops the current process'''
-        if not self.is_running:
+        if not self._is_running:
             print('No currently running process')
         
         else:  # Stop the current process
             self._p.terminate()
-            self.is_running = False
+            self._is_running = False
             print(f'{self} stopped')
 
 
