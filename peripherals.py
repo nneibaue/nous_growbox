@@ -1,15 +1,18 @@
-import time
+# Standard Library
 from datetime import datetime
-import fire
+import multiprocessing
+from random import random
 from pathlib import Path
+import time
+
+# Third party
+import fire
+import numpy as np
 import serial
 import boto3
 import tqdm
-from random import random
-import multiprocessing
 
-
-DATA_FILE = 'sensor_data_{date}'
+DATA_BASE_DIR = 'data'
 BUCKET = 'nous-growbox'
 PORT = '/dev/ttyACM0'
 HEADER = 'time,humidity,temp'
@@ -64,7 +67,10 @@ def get_sensor_datapoint(serial=ARDUINO):
     serial.write('getTempHumidity\n'.encode())
     time.sleep(0.5)
     s = serial.readline().strip().decode()
-    humidity, temp = s.split(',')
+    try:
+        humidity, temp = s.split(',')
+    except ValueError:
+        humidity, temp = (np.nan, np.nan)
     return DataPoint(float(temp), float(humidity))
 
     
@@ -82,7 +88,8 @@ def capture_single_point(source: str, data_dir='.'):
         data = get_fake_datapoint()
 
     fname = f'growbox_data_{source}_{data.year}{data.month}{data.day}-{data.hour}.csv'
-    data_dir = Path(data_dir)
+    data_dir = Path(DATA_BASE_DIR) / data_dir
+    breakpoint()
     if not data_dir.exists():
         data_dir.mkdir()
 
