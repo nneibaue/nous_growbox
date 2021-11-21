@@ -2,6 +2,11 @@
 <html>
 	<head>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<link rel="stylesheet" href="{{ url_for('static', filename='loader.css') }}">
+
+		<!-- Plotly -->
+			<script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+
 	<style>
 		.data-readout {
 			border: 1px solid black;
@@ -13,6 +18,18 @@
 			width: 170px;
 			padding: 10px
 		}
+		#start-button {
+			background-color: lightgreen;
+			width: 75px;
+			height: 55px;
+			border-radius: 10%;
+		}
+		#stop-button {
+			background-color: lightcoral;
+			width: 75px;
+			height: 55px;
+			border-radius: 10%;
+		}
 	</style>
 	</head>
 	<body>
@@ -23,39 +40,73 @@
 		</div>
 		<br>
 
-		<div class='collector-submit'>
-			<label for="fname">data_dir: </label>
+		<div id="controls" class="collector-submit">
+			<label for="fname">data directory: </label>
 			<input type="text" id="data-dir-input" value="data"><br>
-			<label for="lname">source: </label>
-			<input type="text" id="source-input" value="sensor"><br>
-			<label for="lname">sample_rate: </label>
+			<label for="source-input">select source</label>
+			<select id="source-input" name="source">
+				<option value="sensor">sensor</option>
+				<option value="fake">synthetic</option>
+			</select>
+			<label for="lname">sample rate: </label>
 			<input type="text" id="sample-rate-input" value="60"><br>
-			<input type="submit" value="Submit">
 			<button id="start-button" onclick="start()">Start</button>
 			<button id="stop-button" onclick="stop()" disabled=true>Stop</button>
 
+			<!-- <div class="loader">
+				<span></span>
+				<span></span>
+				<span></span> -->
+			</div>
 		</div>
-
 	</body>
+
 	<script>
-			var data_dir = document.getElementById('data-dir-input');
-			var source = document.getElementById('source-input');
-			var sample_rate = document.getElementById('sample-rate-input');
-			var stop_button = document.getElementById('stop-button');
-			var start_button = document.getElementById('start-button');
+		var collectorStatus = JSON.parse({{ status|tojson }});
+		var data_dir_element = document.getElementById('data-dir-input');
+		var source_element = document.getElementById('source-input');
+		var sample_rate_element = document.getElementById('sample-rate-input');
+		var collector_status_element = document.getElementById('status-area')
+		var controls = document.getElementById('controls');
+
+		var stop_button = document.getElementById('stop-button');
+		var start_button = document.getElementById('start-button');
+
+		update_form();
 
 		function start() {
-			stop_button.disabled = false;
-			start_button.disabled = true;
-			url = `/start?data_dir=${data_dir.value}&source=${source.value}&sample_rate=${sample_rate.value}`;
-			window.location.href = url
-
+			url = `
+			/start?
+			data_dir=${data_dir_element.value}
+			&source=${source_element.value}
+			&sample_rate=${sample_rate_element.value}`;
+			window.location.href = url;
+			update_form();
 		}
 
 		function stop() {
-			start_button.disabled = false;
-			stop_button.disabled = true;
 			window.location.href = `/stop`
+			update_form();
 		}
+
+		function update_form() {
+			is_running = collectorStatus.is_running	
+			stop_button.disabled = !is_running;
+			stop_button.style.opacity = is_running ? 1 : 0.2;
+			start_button.disabled = is_running;
+			start_button.style.opacity = is_running ? 0.2 : 1;
+			source_element.disabled = is_running;
+			sample_rate_element.disabled = is_running;
+			data_dir_element.disabled = is_running;
+
+			data_dir_element.value = collectorStatus.data_dir;
+			source_element.value =  collectorStatus.source;
+			sample_rate_element.value = collectorStatus.sample_rate;
+		}
+
+		function make_plot(data) {
+			a = 5;
+		}
+
 	</script>
 </html>

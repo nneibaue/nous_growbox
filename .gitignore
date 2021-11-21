@@ -1,3 +1,5 @@
+*.csv
+data/
 env/
 *.csv
 __pycache__/

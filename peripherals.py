@@ -1,5 +1,6 @@
 # Standard Library
 from datetime import datetime
+import json
 import multiprocessing
 from random import random
 from pathlib import Path
@@ -135,6 +136,19 @@ class Collector:
         self._p = None  # Variable to hold a multiprocessing.Process instance
 
 
+    # Convenience for sending data to frontend without having to send the entire object
+    @property
+    def status(self):
+        '''Returns object state as json string'''
+        status =  {
+            'is_running': self._is_running,
+            'data_dir': self.data_dir,
+            'source': self.source,
+            'sample_rate': self.sample_rate
+        }
+        return json.dumps(status)
+
+
     @property
     def is_running(self):
         return self._is_running
@@ -142,6 +156,7 @@ class Collector:
     @is_running.setter
     def is_running(self, status):
         raise ValueError('Cannot set this property manually!')
+
 
     def start(self):
         '''Starts a new collection at one sample every <sample_rate> seconds.'''
