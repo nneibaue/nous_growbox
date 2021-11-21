@@ -4,19 +4,27 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 		<link rel="stylesheet" href="{{ url_for('static', filename='loader.css') }}">
 
+		<!-- Bootstrap -->
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 		<!-- Plotly -->
-			<script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+		<script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+		<!-- Our plotting code -->
+		<script src="{{ url_for('static', filename='graph.js') }}"></script>
+
+
 
 	<style>
 		.data-readout {
 			border: 1px solid black;
-			width: 170px;
 			padding: 10px;
 		}
 		.collector-submit {
 			border: 1px solid black;
-			width: 170px;
-			padding: 10px
+			width: auto;
+			padding: 10px;
+		}
+		.plotarea {
+			width: auto;
 		}
 		#start-button {
 			background-color: lightgreen;
@@ -33,30 +41,45 @@
 	</style>
 	</head>
 	<body>
-		<div class='data-readout'>
-			<h3>Reading at {{ now }}</h3>
-			<b>Temperature:</b> {{ temp }} <br>
-			<b>Humidity:</b> {{ humidity }} <br>
-		</div>
 		<br>
-
-		<div id="controls" class="collector-submit">
-			<label for="fname">data directory: </label>
-			<input type="text" id="data-dir-input" value="data"><br>
-			<label for="source-input">select source</label>
-			<select id="source-input" name="source">
-				<option value="sensor">sensor</option>
-				<option value="fake">synthetic</option>
-			</select>
-			<label for="lname">sample rate: </label>
-			<input type="text" id="sample-rate-input" value="60"><br>
-			<button id="start-button" onclick="start()">Start</button>
-			<button id="stop-button" onclick="stop()" disabled=true>Stop</button>
-			<div id="loader" class="loader"></div>
+		<div class="container">
+			<div class="row">
+				<div class="col-9">
+					<div class='data-readout'>
+						<h3>Reading at {{ now }}</h3>
+						<b>Temperature:</b> {{ temp }} <br>
+						<b>Humidity:</b> {{ humidity }} <br>
+					</div>
+				</div>
+				<div class="col-3">
+					<div id="controls" class="collector-submit">
+						<h3>Sensor Controller</h3>
+						<label for="fname">data directory: </label>
+						<input type="text" id="data-dir-input" value="data"><br>
+						<label for="source-input">select source</label>
+						<select id="source-input" name="source">
+							<option value="sensor">sensor</option>
+							<option value="fake">synthetic</option>
+						</select>
+						<label for="lname">sample rate: </label>
+						<input type="text" id="sample-rate-input" value="60"><br>
+						<button id="start-button" onclick="start()">Start</button>
+						<button id="stop-button" onclick="stop()" disabled=true>Stop</button>
+						<div id="loader" class="loader"></div>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<div id='plotarea'></div>
+			</div>
 		</div>
 	</body>
 
 	<script>
+		var foobar = {{ plotdata|safe }};
+		plot_sensor_data({{ plotdata|safe }}, 'plotarea');
+
+
 		var collectorStatus = JSON.parse({{ status|tojson }});
 		var data_dir_element = document.getElementById('data-dir-input');
 		var source_element = document.getElementById('source-input');

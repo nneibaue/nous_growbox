@@ -16,10 +16,6 @@ FILE_PATTERN = 'growbox_data_(sensor|fake)_(?P<date>\d{8})-(?P<hour>\d{1,2})\.cs
 
 collector = peripherals.Collector()
 
-@app.route('/')
-def hello_world():
-    return 'Hello, World!'
-
 
 @app.route('/stop')
 def stop_loop():
@@ -36,16 +32,18 @@ def start_collection():
     return redirect(url_for('show_current_readings'))
     
 
-@app.route('/current')
+@app.route('/')
 def show_current_readings():
     print(request.url)
     current_data = peripherals.get_sensor_datapoint()
+    data = data_utils.get_data(collector.data_dir).to_json(orient='records')
     return render_template(
         'index.html',
         temp=current_data.temp,
         humidity=current_data.humidity,
         now=current_data.time,
         status=collector.status,
+        plotdata=data,
     )
 
 
