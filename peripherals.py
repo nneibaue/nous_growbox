@@ -12,6 +12,7 @@ import numpy as np
 import serial
 import boto3
 import tqdm
+import RPi.GPIO as gpio
 
 DATA_BASE_DIR = 'data'
 BUCKET = 'nous-growbox'
@@ -22,6 +23,12 @@ HEADER = 'time,humidity,temp'
 # module is called or imported. The 2 second delay is to allow all of the serial 
 # 'handshaking' to initialize properly
 ARDUINO = serial.Serial(PORT, 9600)
+
+# Setup raspberry pi pins
+RELAY = 21
+gpio.setmode(gpio.BCM)
+gpio.setup(RELAY, gpio.OUT)
+
 print('Initializing serial port')
 time.sleep(2)
 

@@ -52,12 +52,7 @@
 			<input type="text" id="sample-rate-input" value="60"><br>
 			<button id="start-button" onclick="start()">Start</button>
 			<button id="stop-button" onclick="stop()" disabled=true>Stop</button>
-
-			<!-- <div class="loader">
-				<span></span>
-				<span></span>
-				<span></span> -->
-			</div>
+			<div id="loader" class="loader"></div>
 		</div>
 	</body>
 
@@ -71,6 +66,8 @@
 
 		var stop_button = document.getElementById('stop-button');
 		var start_button = document.getElementById('start-button');
+
+		var loader = document.getElementById('loader');
 
 		update_form();
 
@@ -102,6 +99,15 @@
 			data_dir_element.value = collectorStatus.data_dir;
 			source_element.value =  collectorStatus.source;
 			sample_rate_element.value = collectorStatus.sample_rate;
+
+			loaderhtml = `
+			<span></span>
+			<span></span>
+			<span></span>
+			<span></span>
+			<span></span>
+			`
+			loader.innerHTML = is_running ? loaderhtml : ''
 		}
 
 		function make_plot(data) {
