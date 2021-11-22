@@ -1,14 +1,20 @@
-import time
+# Standard Library
 from datetime import datetime
-import fire
+import json
+import multiprocessing
+from random import random
 from pathlib import Path
+import time
+
+# Third party
+import fire
+import numpy as np
 import serial
 import boto3
 import tqdm
-from random import random
+import RPi.GPIO as gpio
 
-
-DATA_FILE = 'sensor_data_{date}'
+DATA_BASE_DIR = 'data'
 BUCKET = 'nous-growbox'
 PORT = '/dev/ttyACM0'
 HEADER = 'time,humidity,temp'
@@ -17,6 +23,12 @@ HEADER = 'time,humidity,temp'
 # module is called or imported. The 2 second delay is to allow all of the serial 
 # 'handshaking' to initialize properly
 ARDUINO = serial.Serial(PORT, 9600)
+
+# Setup raspberry pi pins
+RELAY = 21
+gpio.setmode(gpio.BCM)
+gpio.setup(RELAY, gpio.OUT)
+
 print('Initializing serial port')
 time.sleep(2)
 
@@ -46,6 +58,9 @@ class DataPoint:
         self.year = self._time.year
         self.month = self._time.month
 
+    @property
+    def time_nice(self):
+        return self._time.strftime('%Y-%m-%d %H:%M:%S')
     
     def __repr__(self):
         return f'{self.time},{self.humidity},{self.temp}'
@@ -62,52 +77,35 @@ def get_sensor_datapoint(serial=ARDUINO):
     serial.flush()
     serial.read_all()
     serial.write('getTempHumidity\n'.encode())
-    time.sleep(0.2)
+    time.sleep(0.5)
     s = serial.readline().strip().decode()
-    humidity, temp = s.split(',')
-    return DataPoint(float(humidity), float(temp))
+    try:
+        humidity, temp = s.split(',')
+    except ValueError:
+        humidity, temp = (np.nan, np.nan)
+    return DataPoint(float(temp), float(humidity))
 
     
-def capture_loop(duration, upload=False, real=False):
-    file = Path('testfile.csv')
-    if not file.exists():
-        with open(file, 'w') as f:
-            f.write('time,humidity,temp\n')
+def capture_loop(sample_rate: int, source: str, data_dir='.'):
+    while True:
+        capture_single_point(source, data_dir)
+        time.sleep(sample_rate)
 
-    f = open(file, 'a')
-    print(f'Performing a {duration} second test...')
-    for _ in tqdm.tqdm(range(duration)):
-        if real:
-            PORT = '/dev/ttyACM0'
-            data = get_sensor_datapoint(s)
-        else:
-            data = get_fake_datapoint()
 
-        f.write(f'{data}\n')
-        time.sleep(1)
-    f.close()
-
-    if upload:
-        cloud_filename = 'test1_11-6-2021'
-        upload_to_bucket(BUCKET, str(file), cloud_filename)
-
-def capture_loop_test(source, n_captures):
-    for _ in tqdm.tqdm(range(n_captures)):
-        capture_single_point(source)
-        time.sleep(5)
-
-# Every minute:
-# take a data point. We have data now
-# Decide where it goes -> based on data timestamp, group by hour
-
-def capture_single_point(source: str):
+def capture_single_point(source: str, data_dir='.'):
     assert source in ['sensor', 'fake'], "`source` must be one of ['sensor', 'fake']"
     if source == 'sensor':
-        data = get_sensor_datapoint(ARDUINO)
+        data = get_sensor_datapoint()
     else:
         data = get_fake_datapoint()
 
-    file = Path(f'growbox_data_{source}_{data.year}{data.month}{data.day}-{data.hour}.csv')
+    fname = f'growbox_data_{source}_{data.year}{data.month}{data.day}-{data.hour}.csv'
+    data_dir = Path(DATA_BASE_DIR) / data_dir
+    if not data_dir.exists():
+        data_dir.mkdir()
+
+    file = Path(data_dir) / fname
+
     if not file.exists():
         to_write = f'{HEADER}\n{data}\n'
     else:
@@ -115,6 +113,93 @@ def capture_single_point(source: str):
 
     with open(file, 'a') as f:
         f.write(to_write)
+
+
+class Collector:
+    '''Simple collector object that allows you to start and stop a collection.
+
+    Once a Collector is instantiated, collections can be started and stopped by
+    calling the `start` and `stop` methods. Under the hood, the object is creating
+    `multiprocessing.Process` objects that point to the `capture_loop` function
+    defined above in `peripherals.py`.
+
+    Example:
+    ```
+    >>> c1 = Collector(data_dir='testing', source='fake', sample_rate=1) 
+    >>> c1.start()  # Starts the collect
+    >>> time.sleep(60)  # Collect for 60 seconds
+    >>> c1.stop()  # Stop the collection
+    >>> c1.data_dir = 'testing2'  # Switch to a new data dir
+    >>> c1.source = 'sensor'  # Now collect from the sensor
+    >>> c1.sample_rate = 3  # Change sample rate
+    >>> c1.start()
+    >>> time.sleep(50)
+    >>> c1.stop()
+    ```
+
+    '''
+    def __init__(self, data_dir='.', source='sensor', sample_rate=60):
+        self._is_running = False
+        self.data_dir = data_dir
+        self.source = source
+        self.sample_rate = sample_rate 
+
+        self._p = None  # Variable to hold a multiprocessing.Process instance
+
+
+    # Convenience for sending data to frontend without having to send the entire object
+    @property
+    def status(self):
+        '''Returns object state as json string'''
+        status =  {
+            'is_running': self._is_running,
+            'data_dir': self.data_dir,
+            'source': self.source,
+            'sample_rate': self.sample_rate
+        }
+        return json.dumps(status)
+
+
+    @property
+    def is_running(self):
+        return self._is_running
+
+    @is_running.setter
+    def is_running(self, status):
+        raise ValueError('Cannot set this property manually!')
+
+
+    def start(self):
+        '''Starts a new collection at one sample every <sample_rate> seconds.'''
+        if self._is_running:
+            print(f'This process is already running')
+
+        else:  # Create and start a new process
+            self._p = multiprocessing.Process(
+                target=capture_loop,
+                args=(self.sample_rate, self.source, self.data_dir)
+            )
+            self._p.start()
+            self._is_running=True
+            print(f'Started a collection at {60/self.sample_rate} points per minute in {self.data_dir}')
+
+
+    def stop(self):
+        '''Stops the current process'''
+        if not self._is_running:
+            print('No currently running process')
+        
+        else:  # Stop the current process
+            self._p.terminate()
+            self._is_running = False
+            print(f'{self} stopped')
+
+
+    def __repr__(self):
+        s = self.sample_rate
+        d = self.data_dir
+        return f'Collector({s}, {d})'
+
 
 
 if __name__ == '__main__':

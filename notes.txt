@@ -1,0 +1,2 @@
+20211120: I had to call `git config core.filemode false` to tell git not to
+	  track changes to file permissions bits

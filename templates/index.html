@@ -1,14 +1,159 @@
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<h3>Reading at {now}</h3>
-<b>Temperature:</b> {temp} <br>
-<b>Humidity:</b> {humidity} <br>
-<div style="border: 2px solid green;width: 25%">
-    <input type="button" onclick="submit('on')" value="Fan on"/>
-    <input type="button" onclick="submit('off')" value="Fan off"/>
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<link rel="stylesheet" href="{{ url_for('static', filename='loader.css') }}">
 
-<script>
-function submit(which) {{
-    console.log(which);
-    $.post("/fancontrol", {{"setButtonTo": which}})
-}}
-</script>
+		<!-- Bootstrap -->
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+		<!-- Plotly -->
+		<script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+		<!-- Our plotting code -->
+		<script src="{{ url_for('static', filename='graph.js') }}"></script>
+
+
+
+	<style>
+		.data-readout {
+			border: 1px solid black;
+			padding: 10px;
+		}
+		.collector-submit {
+			border: 1px solid black;
+			width: auto;
+			padding: 10px;
+		}
+		.plotarea {
+			width: auto;
+		}
+		#start-button {
+			background-color: lightgreen;
+			width: 75px;
+			height: 55px;
+			border-radius: 10%;
+		}
+		#stop-button {
+			background-color: lightcoral;
+			width: 75px;
+			height: 55px;
+			border-radius: 10%;
+		}
+	</style>
+	</head>
+	<body>
+		<br>
+		<div class="container">
+			<div class="row">
+				<div class="col-9">
+					<div id="data-readout" class="data-readout"></div>
+				</div>
+				<div class="col-3">
+					<div id="controls" class="collector-submit">
+						<h3>Sensor Controller</h3>
+						<label for="fname">collection name: </label>
+						<input type="text" id="data-dir-input" value="data"><br>
+						<label for="source-input">select source</label>
+						<select id="source-input" name="source">
+							<option value="sensor">sensor</option>
+							<option value="fake">synthetic</option>
+						</select>
+						<label for="lname">sample rate: </label>
+						<input type="text" id="sample-rate-input" value="60"><br>
+						<button id="start-button" onclick="start()">Start</button>
+						<button id="stop-button" onclick="stop()" disabled=true>Stop</button>
+						<div id="loader" class="loader"></div>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+				<p>Refresh page to update graph with data from current collection</p>
+				<div id='plotarea'></div>
+			</div>
+		</div>
+	</body>
+
+	<script>
+		var collectorStatus = JSON.parse({{ status|tojson }});
+
+		// Help from https://stackoverflow.com/questions/58663713/using-set-interval-and-fetch-in-a-function
+		function displayLoop(updateGraph=false){
+			id = setInterval(async function(){
+				const response = await fetch('/current');
+				const data = await response.json();
+				readings = `
+					<h3>Current readings:</h3>
+					<b>Time:</b> ${data.time} <br>
+					<b>Temperature:</b> ${data.temp} <br>
+					<b>Humidity:</b> ${data.humidity} <br>
+					`
+				document.getElementById('data-readout').innerHTML = readings;
+				if (updateGraph) {
+					var update = {
+							x:  [[data.time], [data.time]],
+							y: [[data.temp], [data.humidity]]
+						};
+					Plotly.extendTraces('plotarea', update, [0, 1])
+				}
+			}, 2000);     
+			return id;
+		}
+
+
+		plot_sensor_data({{ plotdata|safe }}, 'plotarea');
+
+		var displayId = displayLoop();
+
+		var data_dir_element = document.getElementById('data-dir-input');
+		var source_element = document.getElementById('source-input');
+		var sample_rate_element = document.getElementById('sample-rate-input');
+		var collector_status_element = document.getElementById('status-area')
+		var controls = document.getElementById('controls');
+
+		var stop_button = document.getElementById('stop-button');
+		var start_button = document.getElementById('start-button');
+
+		var loader = document.getElementById('loader');
+
+		update_form();
+
+		function start() {
+			url = `
+			/start?
+			data_dir=${data_dir_element.value}
+			&source=${source_element.value}
+			&sample_rate=${sample_rate_element.value}`;
+			window.location.href = url;
+			update_form();
+		}
+
+		function stop() {
+			window.location.href = `/stop`
+			update_form();
+		}
+
+		function update_form() {
+			is_running = collectorStatus.is_running	
+			stop_button.disabled = !is_running;
+			stop_button.style.opacity = is_running ? 1 : 0.2;
+			start_button.disabled = is_running;
+			start_button.style.opacity = is_running ? 0.2 : 1;
+			source_element.disabled = is_running;
+			sample_rate_element.disabled = is_running;
+			data_dir_element.disabled = is_running;
+
+			data_dir_element.value = collectorStatus.data_dir;
+			source_element.value =  collectorStatus.source;
+			sample_rate_element.value = collectorStatus.sample_rate;
+
+			loaderhtml = `
+			<span></span>
+			<span></span>
+			<span></span>
+			<span></span>
+			<span></span>
+			`
+			loader.innerHTML = is_running ? loaderhtml : ''
+		}
+
+	</script>
+</html>
