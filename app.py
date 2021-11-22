@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, url_for, redirect
+from flask import Flask, request, render_template, url_for, redirect, jsonify
 import serial
 import peripherals
 import data_utils
@@ -45,6 +45,22 @@ def show_current_readings():
         status=collector.status,
         plotdata=data,
     )
+
+@app.route('/current')
+def get_current_readings():
+    current = peripherals.get_sensor_datapoint()
+    payload =  {
+        'temp': current.temp,
+        'humidity': current.humidity,
+        'time': current.time_nice
+    }
+    return jsonify(payload)
+
+
+@app.route('/collection')
+def get_collection_data():
+    data = data_utils.get_data(collector.data_dir).to_json(orient='records')
+    return jsonify(data)
 
 
 @app.route('/fancontrol', methods=['POST'])

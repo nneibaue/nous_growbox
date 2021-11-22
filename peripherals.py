@@ -57,6 +57,10 @@ class DataPoint:
         self.minute = self._time.minute
         self.year = self._time.year
         self.month = self._time.month
+
+    @property
+    def time_nice(self):
+        return self._time.strftime('%Y-%m-%d %H:%M:%S')
     
     def __repr__(self):
         return f'{self.time},{self.humidity},{self.temp}'

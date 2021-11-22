@@ -2,6 +2,7 @@ import re
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+import numpy as np
 
 DATA_BASE_DIR = 'data'
 
@@ -25,4 +26,6 @@ def get_data(data_dir, start=None, end=None):
 	# 	condition = start is not None
 	# 	if start is not None and file_start >= start:
 	dfs = [pd.read_csv(f) for f in all_files if re.match(FILE_PATTERN, f.name)]
+	if not dfs:
+		return pd.DataFrame([{'time': np.nan, 'temp': np.nan, 'humidity': np.nan}])
 	return pd.concat(dfs).sort_values(by='time')

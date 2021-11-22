@@ -45,16 +45,12 @@
 		<div class="container">
 			<div class="row">
 				<div class="col-9">
-					<div class='data-readout'>
-						<h3>Reading at {{ now }}</h3>
-						<b>Temperature:</b> {{ temp }} <br>
-						<b>Humidity:</b> {{ humidity }} <br>
-					</div>
+					<div id="data-readout" class="data-readout"></div>
 				</div>
 				<div class="col-3">
 					<div id="controls" class="collector-submit">
 						<h3>Sensor Controller</h3>
-						<label for="fname">data directory: </label>
+						<label for="fname">collection name: </label>
 						<input type="text" id="data-dir-input" value="data"><br>
 						<label for="source-input">select source</label>
 						<select id="source-input" name="source">
@@ -70,17 +66,43 @@
 				</div>
 			</div>
 			<div class="row">
+				<p>Refresh page to update graph with data from current collection</p>
 				<div id='plotarea'></div>
 			</div>
 		</div>
 	</body>
 
 	<script>
-		var foobar = {{ plotdata|safe }};
+		var collectorStatus = JSON.parse({{ status|tojson }});
+
+		// Help from https://stackoverflow.com/questions/58663713/using-set-interval-and-fetch-in-a-function
+		function displayLoop(updateGraph=false){
+			id = setInterval(async function(){
+				const response = await fetch('/current');
+				const data = await response.json();
+				readings = `
+					<h3>Current readings:</h3>
+					<b>Time:</b> ${data.time} <br>
+					<b>Temperature:</b> ${data.temp} <br>
+					<b>Humidity:</b> ${data.humidity} <br>
+					`
+				document.getElementById('data-readout').innerHTML = readings;
+				if (updateGraph) {
+					var update = {
+							x:  [[data.time], [data.time]],
+							y: [[data.temp], [data.humidity]]
+						};
+					Plotly.extendTraces('plotarea', update, [0, 1])
+				}
+			}, 2000);     
+			return id;
+		}
+
+
 		plot_sensor_data({{ plotdata|safe }}, 'plotarea');
 
+		var displayId = displayLoop();
 
-		var collectorStatus = JSON.parse({{ status|tojson }});
 		var data_dir_element = document.getElementById('data-dir-input');
 		var source_element = document.getElementById('source-input');
 		var sample_rate_element = document.getElementById('sample-rate-input');
@@ -131,10 +153,6 @@
 			<span></span>
 			`
 			loader.innerHTML = is_running ? loaderhtml : ''
-		}
-
-		function make_plot(data) {
-			a = 5;
 		}
 
 	</script>
